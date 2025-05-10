@@ -28,14 +28,26 @@ void parse_args(int argc, char* argv[], int* print_ast_flag, char** out_dir) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--print-ast") == 0) {
             *print_ast_flag = 1;
-        } else if (starts_with(argv[i], "--out-dir")) {
-            if (strchr(argv[i], '=')) {
-                // Format: --out-dir=DIR
-                *out_dir = strchr(argv[i], '=') + 1;
-            } else if (i + 1 < argc) {
-                // Format: --out-dir DIR (space separated)
+        } else if (strcmp(argv[i], "--out-dir") == 0 || strcmp(argv[i], "--output-dir") == 0) {
+            // Handles "--out-dir DIR" or "--output-dir DIR" (space separated)
+            if (i + 1 < argc && argv[i+1][0] != '-') {
+                // Next argument exists and is not another option
                 *out_dir = argv[i + 1];
-                i++;  // Skip the next argument
+                i++;  // Consume the directory argument
+            } else {
+                // --out-dir/--output-dir is the last argument or followed by another option.
+                // Use default directory. A warning could be printed here if desired.
+                // fprintf(stderr, "Warning: %s is missing a value or followed by another option. Using default directory '%s'.\n", argv[i], *out_dir);
+            }
+        } else if (starts_with(argv[i], "--out-dir=") || starts_with(argv[i], "--output-dir=")) {
+            // Handles "--out-dir=DIR" or "--output-dir=DIR"
+            char* value = strchr(argv[i], '=') + 1;
+            if (*value != '\0') { // Check if value is not empty
+                *out_dir = value;
+            } else {
+                // Value is empty (e.g., --out-dir= or --output-dir=)
+                // Use default directory. A warning could be printed here if desired.
+                // fprintf(stderr, "Warning: %s received an empty value. Using default directory '%s'.\n", argv[i], *out_dir);
             }
         }
     }
