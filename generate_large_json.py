@@ -2,6 +2,7 @@ import json
 import uuid
 import random
 import string
+import os
 
 def generate_random_string(length):
     """Generates a random string of fixed length."""
@@ -73,6 +74,3 @@ except IOError as e:
     print(f"Error writing file: {e}")
 except Exception as e:
     print(f"An unexpected error occurred: {e}")
-
-# To make the script runnable and get file size, need os module
-import os
