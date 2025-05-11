@@ -44,11 +44,59 @@ To build and run `json2relcsv`, you will need the following:
 *   Flex (Lexical Analyzer Generator)
 *   Bison (Parser Generator)
 
+This project has been tested on **macOS 15.5** using Clang, CMake, and Flex/Bison installed via Homebrew.
+
+### macOS Setup
+
 On macOS, these can be installed using [Homebrew](https://brew.sh/):
 ```bash
 brew install cmake flex bison
 ```
 The `CMakeLists.txt` is configured to prefer Homebrew's versions of Flex and Bison if they are installed in their default Homebrew locations (`/opt/homebrew/opt/bison/bin` and `/opt/homebrew/opt/flex/bin`).
+
+### Linux Setup
+
+To run this project on Linux:
+
+1.  **Install Prerequisites:**
+    Use your distribution's package manager to install `gcc` (or `clang`), `cmake`, `flex`, and `bison`. For example, on Debian/Ubuntu:
+    ```bash
+    sudo apt update
+    sudo apt install build-essential cmake flex bison
+    ```
+    On Fedora:
+    ```bash
+    sudo dnf install gcc cmake flex bison
+    ```
+
+2.  **CMake Configuration for Flex/Bison:**
+    The current `CMakeLists.txt` includes specific paths for Homebrew's Flex and Bison installations on macOS:
+    ```cmake
+    set(ENV{PATH} "/opt/homebrew/opt/bison/bin:/opt/homebrew/opt/flex/bin:$ENV{PATH}")
+    set(FLEX_EXECUTABLE "/opt/homebrew/opt/flex/bin/flex" CACHE FILEPATH "Path to Flex executable" FORCE)
+    set(BISON_EXECUTABLE "/opt/homebrew/opt/bison/bin/bison" CACHE FILEPATH "Path to Bison 3.0+ executable" FORCE)
+    # ... and include directories related to /opt/homebrew
+    ```
+    For Linux, you will likely need to **remove or comment out these macOS-specific Homebrew paths** to allow CMake to find the system-installed versions of Flex and Bison. `find_package(FLEX REQUIRED)` and `find_package(BISON REQUIRED)` should then locate the tools correctly if they are in the system's standard PATH.
+
+    Specifically, you might need to comment out or remove lines like:
+    *   `set(ENV{PATH} "/opt/homebrew/opt/bison/bin:/opt/homebrew/opt/flex/bin:$ENV{PATH}")`
+    *   The `set(FLEX_EXECUTABLE ... FORCE)` line.
+    *   The `set(BISON_EXECUTABLE ... FORCE)` line.
+    *   Any `include_directories()` that explicitly point to `/opt/homebrew/include` or subdirectories of `/opt/homebrew/opt/flex` or `/opt/homebrew/opt/bison`.
+
+    CMake should then fall back to its default mechanism for finding these tools.
+
+3.  **Build as usual:**
+    After adjusting `CMakeLists.txt` (if necessary), follow the standard build steps:
+    ```bash
+    mkdir build
+    cd build
+    cmake ..
+    make
+    ```
+
+The core C code (`.c`, `.y`, `.l` files) is standard and should compile on Linux without changes once the build system correctly locates Flex and Bison.
 
 ---
 
