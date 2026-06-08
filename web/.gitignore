@@ -1,0 +1,12 @@
+# The self-contained WASM ES module (src/wasm/json2relcsv.mjs) is committed on
+# purpose so Cloudflare Pages can build with just `npm run build` — no Emscripten
+# in the cloud. Rebuild it with `npm run build:wasm` when the C tool changes.
+
+# Intermediate generated parser/scanner sources
+gen/
+
+# Vite build output
+dist/
+
+# Node dependencies
+node_modules/
