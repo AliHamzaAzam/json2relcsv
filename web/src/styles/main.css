@@ -1,0 +1,588 @@
+/* =========================================================================
+   json2relcsv playground — Industrial Brutalist design system
+   ========================================================================= */
+
+@import '@fontsource/oswald/400.css';
+@import '@fontsource/oswald/700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/700.css';
+
+/* ── Tokens ──────────────────────────────────────────────────────────────── */
+:root {
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --bg: #fafafa;
+  --fg: #111111;
+  --border: #111111;
+  --border-w: 2px;
+  --shadow: 4px 4px 0 var(--border);
+  --shadow-sm: 2px 2px 0 var(--border);
+  --titlebar-bg: #111111;
+  --titlebar-fg: #fafafa;
+  --error-bg: #fef2f2;
+  --error-border: #dc2626;
+  --badge-object-bg: #d1fae5;
+  --badge-array-bg: #dbeafe;
+  --badge-junction-bg: #fef9c3;
+  --tab-inactive-bg: #e5e7eb;
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* subtle dot-grid background */
+body {
+  background-image: radial-gradient(circle, #d1d5db 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ── Typography ──────────────────────────────────────────────────────────── */
+h1,
+h2,
+h3,
+.oswald {
+  font-family: 'Oswald', Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+/* ── Terminal Frame ──────────────────────────────────────────────────────── */
+.terminal-frame {
+  border: var(--border-w) solid var(--border);
+  box-shadow: var(--shadow);
+  background: var(--bg);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.terminal-titlebar {
+  background: var(--titlebar-bg);
+  color: var(--titlebar-fg);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #555;
+}
+
+.terminal-dot--red { background: #ef4444; }
+.terminal-dot--yellow { background: #f59e0b; }
+.terminal-dot--green { background: #22c55e; }
+
+.terminal-title {
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--titlebar-fg);
+}
+
+/* ── Two-pane split ──────────────────────────────────────────────────────── */
+.pane-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .pane-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Panes ───────────────────────────────────────────────────────────────── */
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-top: var(--border-w) solid var(--border);
+}
+
+.pane--left {
+  border-right: var(--border-w) solid var(--border);
+}
+
+.pane-header {
+  background: var(--bg);
+  border-bottom: var(--border-w) solid var(--border);
+  padding: 8px 12px;
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+/* ── Editor area ─────────────────────────────────────────────────────────── */
+.editor-wrap {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+.editor-wrap .cm-editor {
+  height: 100%;
+  min-height: 300px;
+}
+
+.editor-wrap .cm-editor.cm-focused {
+  outline: none;
+}
+
+.editor-wrap .cm-scroller {
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* ── Sample buttons + controls ───────────────────────────────────────────── */
+.editor-controls {
+  padding: 8px 12px;
+  border-top: var(--border-w) solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg);
+}
+
+.sample-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.sample-label {
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #555;
+  align-self: center;
+  margin-right: 4px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border: var(--border-w) solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 5px 10px;
+  background: var(--bg);
+  color: var(--fg);
+  transition: background 80ms;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 0;
+  line-height: 1.2;
+}
+
+.btn:hover {
+  background: #e5e7eb;
+}
+
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--border);
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--border);
+  font-size: 13px;
+  padding: 7px 16px;
+  box-shadow: var(--shadow);
+}
+
+.btn--primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn--primary:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--border);
+}
+
+.btn--sample {
+  font-size: 11px;
+  padding: 3px 8px;
+  box-shadow: 2px 2px 0 var(--border);
+}
+
+.btn--sample.active {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.btn--download {
+  font-size: 11px;
+  padding: 3px 10px;
+}
+
+/* ── Convert row ─────────────────────────────────────────────────────────── */
+.convert-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.convert-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #777;
+}
+
+/* ── Tab bar ─────────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  border-bottom: var(--border-w) solid var(--border);
+  flex-shrink: 0;
+}
+
+.tab {
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  padding: 8px 18px;
+  border: none;
+  border-right: var(--border-w) solid var(--border);
+  background: var(--tab-inactive-bg);
+  color: var(--fg);
+  border-radius: 0;
+  transition: background 80ms;
+  user-select: none;
+}
+
+.tab:hover {
+  background: #d1d5db;
+}
+
+.tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Output area ─────────────────────────────────────────────────────────── */
+.output-content {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  padding: 16px;
+}
+
+/* ── Error panel ─────────────────────────────────────────────────────────── */
+.error-panel {
+  margin: 0 12px 12px;
+  padding: 10px 14px;
+  border: var(--border-w) solid var(--error-border);
+  background: var(--error-bg);
+  box-shadow: 3px 3px 0 var(--error-border);
+  display: none;
+}
+
+.error-panel.visible {
+  display: block;
+}
+
+.error-label {
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--error-border);
+  margin-bottom: 4px;
+}
+
+.error-message {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #991b1b;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── Tables view ─────────────────────────────────────────────────────────── */
+.tables-download-all {
+  margin-bottom: 16px;
+}
+
+.table-section {
+  margin-bottom: 24px;
+}
+
+.table-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.table-name {
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.csv-table-wrap {
+  overflow-x: auto;
+  border: var(--border-w) solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.csv-table {
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  min-width: 100%;
+}
+
+.csv-table th {
+  background: var(--fg);
+  color: var(--bg);
+  padding: 6px 12px;
+  text-align: left;
+  font-weight: 700;
+  white-space: nowrap;
+  border-right: 1px solid #333;
+}
+
+.csv-table th:last-child {
+  border-right: none;
+}
+
+.csv-table td {
+  padding: 5px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.csv-table td:last-child {
+  border-right: none;
+}
+
+.csv-table tr:last-child td {
+  border-bottom: none;
+}
+
+.csv-table tr:nth-child(even) td {
+  background: #f3f4f6;
+}
+
+/* ── Schema / ERD view ───────────────────────────────────────────────────── */
+.schema-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.schema-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.schema-card {
+  border: var(--border-w) solid var(--border);
+  box-shadow: var(--shadow);
+  background: var(--bg);
+  min-width: 180px;
+  max-width: 300px;
+}
+
+.schema-card-header {
+  background: var(--fg);
+  color: var(--bg);
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.schema-card-name {
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge {
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+.badge--object { background: var(--badge-object-bg); }
+.badge--array  { background: var(--badge-array-bg); }
+.badge--junction { background: var(--badge-junction-bg); }
+
+.schema-card-body {
+  padding: 8px 12px;
+}
+
+.schema-col-list {
+  list-style: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.schema-col-list li {
+  padding: 2px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.col-tag {
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border: 1px solid;
+}
+
+.col-tag--pk {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.col-tag--fk {
+  background: transparent;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.col-name {
+  font-weight: 700;
+}
+
+.fk-target {
+  font-size: 11px;
+  color: #6d28d9;
+  font-style: italic;
+}
+
+/* ── Schema edges ─────────────────────────────────────────────────────────── */
+.schema-edges {
+  border: var(--border-w) solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.schema-edges-header {
+  background: var(--fg);
+  color: var(--bg);
+  padding: 6px 12px;
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.schema-edge-list {
+  list-style: none;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.schema-edge-list li {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.edge-arrow {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ── AST view ─────────────────────────────────────────────────────────────── */
+.ast-pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  white-space: pre;
+  background: #111;
+  color: #e5e7eb;
+  padding: 16px;
+  border: var(--border-w) solid var(--border);
+  box-shadow: var(--shadow);
+  overflow: auto;
+  max-height: 600px;
+}
+
+/* ── Empty / placeholder states ───────────────────────────────────────────── */
+.placeholder {
+  color: #9ca3af;
+  font-family: 'Oswald', Arial, sans-serif;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 24px;
+  text-align: center;
+}
