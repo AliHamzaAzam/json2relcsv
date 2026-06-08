@@ -6,6 +6,7 @@ json2relcsv is a command-line utility written in C that converts JSON (JavaScrip
 
 ## Table of Contents
 
+- [🌐 Live Playground](#-live-playground)
 - [✨ Features](#-features)
 - [🛠️ Prerequisites](#️-prerequisites)
 - [🏗️ Building the Project](#️-building-the-project)
@@ -16,6 +17,16 @@ json2relcsv is a command-line utility written in C that converts JSON (JavaScrip
 - [📁 Project Structure (Key Files)](#️-project-structure-key-files)
 - [🤝 Contributing](#-contributing)
 - [📜 License](#-license)
+
+---
+
+## 🌐 Live Playground
+
+Try it instantly in the browser — no install required:
+
+**[https://json2relcsv.alihamzaazam.com](https://json2relcsv.alihamzaazam.com)**
+
+The playground runs the actual `json2relcsv` tool compiled to **WebAssembly**, entirely client-side. Paste any JSON and see the generated CSV tables, the inferred relational schema, and the AST — all in real time.
 
 ---
 
@@ -148,6 +159,7 @@ The `json2relcsv` utility reads JSON data from standard input and outputs CSV fi
 
 *   `--out-dir <directory>`: Specifies the directory where the generated CSV files will be saved. If not provided, CSV files will be created in the current working directory (`.`).
 *   `--print-ast`: An optional flag that, when present, will print a human-readable representation of the parsed Abstract Syntax Tree (AST) to standard output. This is primarily for debugging purposes.
+*   `--emit-schema`: Writes a `schema.json` file into the output directory describing the inferred relational schema. For each table the schema records: its name, kind (`object`, `array`, or `junction`), primary key, parent table, foreign-key column, and the full list of columns. Can be combined with the other flags (e.g. `--print-ast --emit-schema --out-dir out`).
 
 ### Examples
 
@@ -168,7 +180,18 @@ Let's assume your executable is at `./build/json2relcsv`.
     cat /path/to/your/input.json | ./build/json2relcsv --out-dir ./output_csvs --print-ast
     ```
 
-3.  **Convert JSON and output CSVs to the current directory:**
+3.  **Convert JSON and emit the relational schema:**
+    ```bash
+    cat /path/to/your/input.json | ./build/json2relcsv --out-dir ./output_csvs --emit-schema
+    ```
+    This creates the usual CSV files **plus** `./output_csvs/schema.json` describing every inferred table.
+
+4.  **Combine all flags:**
+    ```bash
+    cat /path/to/your/input.json | ./build/json2relcsv --print-ast --emit-schema --out-dir ./output_csvs
+    ```
+
+5.  **Convert JSON and output CSVs to the current directory:**
     ```bash
     cat /path/to/your/input.json | ./build/json2relcsv
     ```
@@ -199,6 +222,7 @@ Let's assume your executable is at `./build/json2relcsv`.
 *   `src/csv_gen.c`: Contains the core logic for analyzing the AST, inferring relational schemas, and generating the CSV files.
 *   `CMakeLists.txt`: The CMake build script for the project.
 *   `tests/`: Contains sample JSON files for testing.
+*   `web/`: The browser-based playground — compiles the tool to WebAssembly and serves an interactive UI at [https://json2relcsv.alihamzaazam.com](https://json2relcsv.alihamzaazam.com).
 
 ---
 
