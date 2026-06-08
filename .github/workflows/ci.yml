@@ -53,15 +53,15 @@ jobs:
         run: npm run build
 
   toolchain:
-    # Ensures the C tool still builds and behaves, and that the committed WASM
-    # module can be regenerated from source. Does not deploy.
+    # Ensures the committed WASM module can be regenerated from source (so it can't
+    # silently go stale) and that the tool still behaves, via the Node smoke test.
+    # The native CMake build + golden test is macOS-pinned, so that stays a local
+    # check; the smoke test exercises the same --emit-schema / CSV output on Linux.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install flex, bison, cmake
-        run: sudo apt-get update && sudo apt-get install -y flex bison cmake
-      - name: C golden test
-        run: bash tests/golden_test.sh
+      - name: Install flex and bison
+        run: sudo apt-get update && sudo apt-get install -y flex bison
       - uses: mymindstorm/setup-emsdk@v14
       - uses: actions/setup-node@v4
         with:
