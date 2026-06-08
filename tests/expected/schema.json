@@ -1,0 +1,9 @@
+{
+  "tables": [
+    { "name": "orders", "kind": "array", "primaryKey": "id", "parent": "users", "foreignKey": "users_id", "columns": ["id", "users_id", "seq", "total", "status"] },
+    { "name": "hobbies", "kind": "junction", "primaryKey": "id", "parent": "users", "foreignKey": "users_id", "columns": ["id", "users_id", "index", "value"] },
+    { "name": "address", "kind": "object", "primaryKey": "id", "parent": "users", "foreignKey": "users_id", "columns": ["id", "users_id", "street", "city"] },
+    { "name": "users", "kind": "array", "primaryKey": "id", "parent": "root", "foreignKey": "root_id", "columns": ["id", "root_id", "seq", "name", "age"] },
+    { "name": "root", "kind": "object", "primaryKey": "id", "parent": null, "foreignKey": null, "columns": ["id"] }
+  ]
+}

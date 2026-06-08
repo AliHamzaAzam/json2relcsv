@@ -1,0 +1,29 @@
+{
+  "users": [
+    {
+      "name": "Alice",
+      "age": 30,
+      "address": {
+        "street": "1 Main St",
+        "city": "Springfield"
+      },
+      "hobbies": ["reading", "cycling"],
+      "orders": [
+        { "total": 49.99, "status": "shipped" },
+        { "total": 12.50, "status": "pending" }
+      ]
+    },
+    {
+      "name": "Bob",
+      "age": 25,
+      "address": {
+        "street": "99 Oak Ave",
+        "city": "Shelbyville"
+      },
+      "hobbies": ["gaming"],
+      "orders": [
+        { "total": 7.00, "status": "delivered" }
+      ]
+    }
+  ]
+}
