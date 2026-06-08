@@ -9,11 +9,20 @@
 #include <ctype.h>
 #include "ast.h"
 
+// Table kind: mirrors the three structural forms from analyze_node
+typedef enum {
+    TABLE_OBJECT,    // standalone JSON object
+    TABLE_ARRAY,     // array-of-objects
+    TABLE_JUNCTION   // array-of-scalars
+} TableKind;
+
 // Structure to represent a table schema
 typedef struct TableSchema {
     char* name;
     char** columns;
     int column_count;
+    char* parent;        // FK target table name; NULL for root table
+    TableKind kind;      // structural kind of this table
     struct TableSchema* next;
 } TableSchema;
 
@@ -39,18 +48,14 @@ static void write_csv_value(FILE* file, ASTNode* node);
 static int has_same_keys(KeyValueList* list1, KeyValueList* list2);
 static char* safe_filename(const char* name);
 
-// Main function to analyze AST and generate CSV files
-void generate_csv_tables(ASTNode* root, const char* output_dir) {
-    SchemaContext context = {NULL, 1}; // Start IDs from 1
+// Shared: run the analysis pass to populate context from root.
+static void build_schema(ASTNode* root, SchemaContext* context) {
+    analyze_node(root, NULL, 0, "root", context);
+}
 
-    // Step 1: Analyze the AST to identify tables and their schemas
-    analyze_node(root, NULL, 0, "root", &context);
-
-    // Step 2: Write CSV files based on the identified schemas
-    write_csv_files(&context, output_dir, root); // Pass root to write_csv_files
-
-    // Free allocated memory for schemas
-    TableSchema* table = context.tables;
+// Shared: free all TableSchema entries in context (columns, parent, name, node).
+static void free_schema(SchemaContext* context) {
+    TableSchema* table = context->tables;
     while (table) {
         TableSchema* next = table->next;
         for (int i = 0; i < table->column_count; i++) {
@@ -58,9 +63,27 @@ void generate_csv_tables(ASTNode* root, const char* output_dir) {
         }
         free(table->columns);
         free(table->name);
+        if (table->parent) {
+            free(table->parent);
+        }
         free(table);
         table = next;
     }
+    context->tables = NULL;
+}
+
+// Main function to analyze AST and generate CSV files
+void generate_csv_tables(ASTNode* root, const char* output_dir) {
+    SchemaContext context = {NULL, 1}; // Start IDs from 1
+
+    // Step 1: Analyze the AST to identify tables and their schemas
+    build_schema(root, &context);
+
+    // Step 2: Write CSV files based on the identified schemas
+    write_csv_files(&context, output_dir, root); // Pass root to write_csv_files
+
+    // Free allocated memory for schemas
+    free_schema(&context);
 }
 
 // Recursively analyzes the AST to discover table schemas (names and columns).
@@ -79,6 +102,12 @@ static void analyze_node(ASTNode* node, const char* parent_table, int parent_id,
             char* table_name = safe_filename(key);
             TableSchema* table = find_or_create_table(context, table_name);
             free(table_name);
+
+            // Record parent on first encounter; kind set each visit (same value)
+            table->kind = TABLE_OBJECT;
+            if (parent_table && table->parent == NULL) {
+                table->parent = strdup(parent_table);
+            }
 
             // Add an 'id' column to serve as the primary key for this table.
             add_column(table, "id");
@@ -133,6 +162,12 @@ static void analyze_node(ASTNode* node, const char* parent_table, int parent_id,
                 char* array_table = safe_filename(key);
                 TableSchema* table = find_or_create_table(context, array_table);
                 free(array_table);
+
+                // Record parent on first encounter; kind set each visit (same value)
+                table->kind = TABLE_ARRAY;
+                if (parent_table && table->parent == NULL) {
+                    table->parent = strdup(parent_table);
+                }
 
                 // Add 'id' (primary key) and parent foreign key to the array's table.
                 add_column(table, "id");
@@ -190,6 +225,12 @@ static void analyze_node(ASTNode* node, const char* parent_table, int parent_id,
                 char* junction_table = safe_filename(key);
                 TableSchema* table = find_or_create_table(context, junction_table);
                 free(junction_table);
+
+                // Record parent on first encounter; kind set each visit (same value)
+                table->kind = TABLE_JUNCTION;
+                if (parent_table && table->parent == NULL) {
+                    table->parent = strdup(parent_table);
+                }
 
                 // Junction table columns: 'id' (primary key), parent foreign key,
                 // 'index' (for order), and 'value' (for the scalar value itself).
@@ -483,6 +524,8 @@ static TableSchema* find_or_create_table(SchemaContext* context, const char* nam
     table->name = strdup(name);
     table->columns = NULL;
     table->column_count = 0;
+    table->parent = NULL;
+    table->kind = TABLE_OBJECT;  // default; overwritten in analyze_node
     table->next = context->tables;
     context->tables = table;
 
@@ -646,4 +689,113 @@ static char* safe_filename(const char* name) {
     }
 
     return result;
+}
+
+// Writes a JSON-escaped string (handles ", \, and control chars) to file.
+static void write_json_escaped_string(FILE* f, const char* s) {
+    fputc('"', f);
+    for (; *s; s++) {
+        if (*s == '"') {
+            fputs("\\\"", f);
+        } else if (*s == '\\') {
+            fputs("\\\\", f);
+        } else if ((unsigned char)*s < 0x20) {
+            // Control characters must be \u-escaped for valid JSON (RFC 8259).
+            fprintf(f, "\\u%04x", (unsigned char)*s);
+        } else {
+            fputc(*s, f);
+        }
+    }
+    fputc('"', f);
+}
+
+// Analyzes root and writes schema.json describing the inferred relational schema.
+void emit_schema_json(ASTNode* root, const char* output_dir) {
+    SchemaContext context = {NULL, 1};
+    build_schema(root, &context);
+
+    // Build output path: "<output_dir>/schema.json", or just "schema.json" for "" / "."
+    char schema_path[4096];
+    if (!output_dir || strcmp(output_dir, "") == 0 || strcmp(output_dir, ".") == 0) {
+        snprintf(schema_path, sizeof(schema_path), "schema.json");
+    } else {
+        snprintf(schema_path, sizeof(schema_path), "%s/schema.json", output_dir);
+    }
+
+    ensure_directory_exists(output_dir);
+
+    FILE* f = fopen(schema_path, "w");
+    if (!f) {
+        fprintf(stderr, "Error: Could not open %s for writing\n", schema_path);
+        free_schema(&context);
+        return;
+    }
+
+    // Count tables for pretty printing
+    int table_count = 0;
+    for (TableSchema* t = context.tables; t; t = t->next) {
+        table_count++;
+    }
+
+    fprintf(f, "{\n  \"tables\": [\n");
+
+    int table_idx = 0;
+    TableSchema* t = context.tables;
+    while (t) {
+        fprintf(f, "    {");
+
+        // name
+        fprintf(f, " \"name\": ");
+        write_json_escaped_string(f, t->name);
+
+        // kind
+        const char* kind_str = (t->kind == TABLE_ARRAY) ? "array"
+                             : (t->kind == TABLE_JUNCTION) ? "junction"
+                             : "object";
+        fprintf(f, ", \"kind\": \"%s\"", kind_str);
+
+        // primaryKey (always "id")
+        fprintf(f, ", \"primaryKey\": \"id\"");
+
+        // parent
+        fprintf(f, ", \"parent\": ");
+        if (t->parent) {
+            write_json_escaped_string(f, t->parent);
+        } else {
+            fprintf(f, "null");
+        }
+
+        // foreignKey
+        fprintf(f, ", \"foreignKey\": ");
+        if (t->parent) {
+            char fk_buf[512];
+            snprintf(fk_buf, sizeof(fk_buf), "%s_id", t->parent);
+            write_json_escaped_string(f, fk_buf);
+        } else {
+            fprintf(f, "null");
+        }
+
+        // columns array (preserving insertion order)
+        fprintf(f, ", \"columns\": [");
+        for (int i = 0; i < t->column_count; i++) {
+            write_json_escaped_string(f, t->columns[i]);
+            if (i < t->column_count - 1) {
+                fprintf(f, ", ");
+            }
+        }
+        fprintf(f, "] }");
+
+        table_idx++;
+        if (table_idx < table_count) {
+            fprintf(f, ",");
+        }
+        fprintf(f, "\n");
+
+        t = t->next;
+    }
+
+    fprintf(f, "  ]\n}\n");
+    fclose(f);
+
+    free_schema(&context);
 }

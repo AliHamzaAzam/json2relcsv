@@ -20,14 +20,18 @@ int starts_with(const char* str, const char* prefix) {
 // Parses command-line arguments to set flags and options.
 // - argc, argv: Standard main function arguments.
 // - print_ast_flag: (Output) Set to 1 if --print-ast is present.
+// - emit_schema_flag: (Output) Set to 1 if --emit-schema is present.
 // - out_dir: (Output) Set to the specified output directory string (defaults to ".").
-void parse_args(int argc, char* argv[], int* print_ast_flag, char** out_dir) {
+void parse_args(int argc, char* argv[], int* print_ast_flag, int* emit_schema_flag, char** out_dir) {
     *print_ast_flag = 0;
+    *emit_schema_flag = 0;
     *out_dir = ".";  // Default to current directory
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--print-ast") == 0) {
             *print_ast_flag = 1;
+        } else if (strcmp(argv[i], "--emit-schema") == 0) {
+            *emit_schema_flag = 1;
         } else if (strcmp(argv[i], "--out-dir") == 0 || strcmp(argv[i], "--output-dir") == 0) {
             // Handles "--out-dir DIR" or "--output-dir DIR" (space separated)
             if (i + 1 < argc && argv[i+1][0] != '-') {
@@ -54,10 +58,11 @@ void parse_args(int argc, char* argv[], int* print_ast_flag, char** out_dir) {
 }
 
 int main(int argc, char* argv[]) {
-    int print_ast_flag = 0; // Flag to indicate if the AST should be printed.
-    char* out_dir = NULL;   // Directory for outputting CSV files.
+    int print_ast_flag = 0;    // Flag to indicate if the AST should be printed.
+    int emit_schema_flag = 0;  // Flag to indicate if schema.json should be written.
+    char* out_dir = NULL;      // Directory for outputting CSV files.
 
-    parse_args(argc, argv, &print_ast_flag, &out_dir);
+    parse_args(argc, argv, &print_ast_flag, &emit_schema_flag, &out_dir);
 
     // To enable Bison's internal parsing trace, uncomment the following line:
     // yydebug = 1;
@@ -83,6 +88,10 @@ int main(int argc, char* argv[]) {
     }
 
     generate_csv_tables(ast_root, out_dir);
+
+    if (emit_schema_flag) {
+        emit_schema_json(ast_root, out_dir);
+    }
 
     free_ast(ast_root); // Release all memory allocated for the AST.
     ast_root = NULL;    // Defensive: prevent dangling pointer use.

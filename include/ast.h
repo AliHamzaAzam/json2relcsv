@@ -78,4 +78,7 @@ void free_ast(ASTNode* root);
 // Analyzes the AST and generates relational CSV files in the specified output directory.
 void generate_csv_tables(ASTNode* root, const char* output_dir);
 
+// Analyzes the AST and writes schema.json describing the inferred relational schema.
+void emit_schema_json(ASTNode* root, const char* output_dir);
+
 #endif /* AST_H */
